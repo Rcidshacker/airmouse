@@ -10,7 +10,7 @@ CAMERA_FPS = 60                   # Target capture FPS; webcam must support this
 CAMERA_BUFFER_SIZE = 1            # DirectShow buffer: 1 = always freshest frame
 
 # ── MediaPipe ──────────────────────────────────────────────────────────────────
-MP_MODEL_COMPLEXITY = 0           # 0 = speed, 1 = balanced, 2 = accuracy
+MP_MODEL_PATH = "models/hand_landmarker.task"  # float16 Tasks API bundle
 MP_MAX_HANDS = 1
 MP_DETECTION_CONFIDENCE = 0.7
 MP_TRACKING_CONFIDENCE = 0.5

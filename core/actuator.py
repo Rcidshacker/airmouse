@@ -26,8 +26,7 @@ from pynput.mouse import Button, Controller as MouseController
 
 logger = logging.getLogger(__name__)
 
-# Enable accurate last-error retrieval for SendInput diagnostics
-ctypes.windll.user32.use_last_error = True
+_user32 = ctypes.WinDLL("user32", use_last_error=True)
 
 # ── SendInput ctypes structures ───────────────────────────────────────────────
 
@@ -61,7 +60,7 @@ MOUSEEVENTF_VIRTUALDESK  = 0x4000   # Interpret absolute coords as virtual deskt
 
 
 def _send_input(inp: INPUT) -> None:
-    result = ctypes.windll.user32.SendInput(1, ctypes.byref(inp), ctypes.sizeof(inp))
+    result = _user32.SendInput(1, ctypes.byref(inp), ctypes.sizeof(inp))
     if result == 0:
         err = ctypes.get_last_error()
         logger.warning("SendInput returned 0 (UIPI block or invalid input?). GetLastError=%d", err)
@@ -105,7 +104,7 @@ class MouseActuator:
                 mouseData=0,
                 dwFlags=MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK,
                 time=0,
-                dwExtraInfo=None,
+                dwExtraInfo=0,
             ),
         )
         _send_input(inp)
