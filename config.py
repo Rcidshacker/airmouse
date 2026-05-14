@@ -25,7 +25,7 @@ TRACKPAD_MARGIN = 100             # pixels, applied to all four edges
 # mincutoff: lower = more smoothing at rest (reduce jitter)
 # beta: higher = less lag at high speed (reduce lag during fast motion)
 # dcutoff: derivative smoothing; usually leave at 1.0
-ONE_EURO_MINCUTOFF = 1.0
+ONE_EURO_MINCUTOFF = 0.5           # lower = more smoothing at rest (less jitter)
 ONE_EURO_BETA = 0.007
 ONE_EURO_DCUTOFF = 1.0
 
@@ -33,9 +33,9 @@ ONE_EURO_DCUTOFF = 1.0
 # All distances are Euclidean norms of normalized MediaPipe coordinates [0.0–1.0].
 # These are aspect-ratio independent.
 
-CLICK_DISTANCE_THRESHOLD = 0.045  # Index–Middle pinch → Left click
-RIGHT_CLICK_DISTANCE_THRESHOLD = 0.045  # Index–Ring pinch → Right click
-DRAG_HOLD_SECONDS = 0.25          # Pinch held this long → drag mode activates
+CLICK_DISTANCE_THRESHOLD = 0.03   # Index–Middle pinch → Left click (tighter = fewer false fires)
+RIGHT_CLICK_DISTANCE_THRESHOLD = 0.06  # Index–Ring pinch → Right click (looser = easier to trigger)
+DRAG_HOLD_SECONDS = 0.4           # Pinch held this long → drag mode activates
 GESTURE_COOLDOWN_SECONDS = 0.4   # Minimum gap between discrete gesture events
 
 # Scroll: number of OS scroll ticks per gesture detection cycle

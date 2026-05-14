@@ -207,7 +207,14 @@ class GestureProcessor:
             return
 
         # 3. Left click / drag state machine
-        left_pinch_active = d_left < CLICK_DISTANCE_THRESHOLD
+        # Suppress click when index+middle+ring are all extended (scroll-up hand position).
+        # Even if tips happen to be close, user intent is scroll not click.
+        scroll_hand_shape = (
+            _is_extended(idx_tip, idx_pip)
+            and _is_extended(mid_tip, mid_pip)
+            and _is_extended(rng_tip, rng_pip)
+        )
+        left_pinch_active = d_left < CLICK_DISTANCE_THRESHOLD and not scroll_hand_shape
 
         if self._state == GestureState.IDLE:
             if left_pinch_active:
