@@ -23,6 +23,7 @@ import ctypes
 import logging
 
 from pynput.mouse import Button, Controller as MouseController
+from pynput.keyboard import Controller as KeyboardController, Key
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +83,7 @@ class MouseActuator:
         self._total_h = total_height
         self._pynput = MouseController()
         self._dragging = False
+        self._keyboard = KeyboardController()
         logger.info("MouseActuator ready (%dx%d desktop)", total_width, total_height)
 
     def move(self, x: int, y: int) -> None:
@@ -132,6 +134,64 @@ class MouseActuator:
         Scroll vertically. Positive ticks = scroll up, negative = scroll down.
         """
         self._pynput.scroll(0, ticks)
+
+    def double_click(self) -> None:
+        self._pynput.click(Button.left, 2)
+
+    def win_d(self) -> None:
+        with self._keyboard.pressed(Key.cmd):
+            self._keyboard.press('d')
+            self._keyboard.release('d')
+
+    def alt_tab(self) -> None:
+        with self._keyboard.pressed(Key.alt):
+            self._keyboard.press(Key.tab)
+            self._keyboard.release(Key.tab)
+
+    def win_tab(self) -> None:
+        with self._keyboard.pressed(Key.cmd):
+            self._keyboard.press(Key.tab)
+            self._keyboard.release(Key.tab)
+
+    def win_key(self) -> None:
+        self._keyboard.press(Key.cmd)
+        self._keyboard.release(Key.cmd)
+
+    def alt_left(self) -> None:
+        with self._keyboard.pressed(Key.alt):
+            self._keyboard.press(Key.left)
+            self._keyboard.release(Key.left)
+
+    def win_l(self) -> None:
+        with self._keyboard.pressed(Key.cmd):
+            self._keyboard.press('l')
+            self._keyboard.release('l')
+
+    def win_snap_left(self) -> None:
+        with self._keyboard.pressed(Key.cmd):
+            self._keyboard.press(Key.left)
+            self._keyboard.release(Key.left)
+
+    def win_snap_right(self) -> None:
+        with self._keyboard.pressed(Key.cmd):
+            self._keyboard.press(Key.right)
+            self._keyboard.release(Key.right)
+
+    def ctrl_down(self) -> None:
+        self._keyboard.press(Key.ctrl)
+
+    def ctrl_up(self) -> None:
+        self._keyboard.release(Key.ctrl)
+
+    def zoom_in(self) -> None:
+        with self._keyboard.pressed(Key.ctrl):
+            self._keyboard.press('=')
+            self._keyboard.release('=')
+
+    def zoom_out(self) -> None:
+        with self._keyboard.pressed(Key.ctrl):
+            self._keyboard.press('-')
+            self._keyboard.release('-')
 
     @property
     def is_dragging(self) -> bool:
