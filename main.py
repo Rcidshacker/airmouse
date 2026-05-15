@@ -30,12 +30,17 @@ import traceback
 
 import psutil
 
-from config import PROCESS_PRIORITY, TIMER_RESOLUTION_MS
+import cv2
+
+from config import PROCESS_PRIORITY, TIMER_RESOLUTION_MS, DEBUG_GESTURES
 from core.camera import AsyncCamera
 from core.tracker import HandTracker
 from core.gestures import GestureOrchestrator
 from core.actuator import MouseActuator
 from core.display import build_virtual_desktop, build_trackpad_zone
+
+if DEBUG_GESTURES:
+    from core.debug_overlay import draw_debug_frame
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 
@@ -184,6 +189,12 @@ def run() -> None:
                 hands = tracker.process(frame)
                 processor.process(hands)
 
+                if DEBUG_GESTURES:
+                    annotated = draw_debug_frame(frame, hands, processor.right_state)
+                    cv2.imshow("AirMouse Debug", annotated)
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                        break
+
                 # FPS telemetry — log once per 5 seconds
                 frame_count += 1
                 now = time.perf_counter()
@@ -198,6 +209,8 @@ def run() -> None:
         except Exception:
             logger.error("Unhandled exception:\n%s", traceback.format_exc())
         finally:
+            if DEBUG_GESTURES:
+                cv2.destroyAllWindows()
             # Ensure drag is never left pressed on exit
             if actuator.is_dragging:
                 actuator.drag_end()

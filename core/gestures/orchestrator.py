@@ -50,3 +50,7 @@ class GestureOrchestrator:
 
         if hands.left is not None and hands.right is not None:
             self._two.process(hands.left, hands.right)
+
+    @property
+    def right_state(self) -> str:
+        return self._right._state.name

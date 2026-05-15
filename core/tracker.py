@@ -20,7 +20,7 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python.vision import HandLandmarker, HandLandmarkerOptions, RunningMode
 import numpy as np
 
-from config import MP_DETECTION_CONFIDENCE, MP_TRACKING_CONFIDENCE, MP_MODEL_PATH
+from config import MP_DETECTION_CONFIDENCE, MP_TRACKING_CONFIDENCE, MP_MODEL_PATH, FLIP_HANDEDNESS
 
 logger = logging.getLogger(__name__)
 
@@ -102,9 +102,12 @@ class HandTracker:
                 )
                 for lm in hand_lms
             ]
-            # Flip: camera "Left" = user's right hand (webcam is a mirror)
             cam_label = result.handedness[i][0].category_name
-            if cam_label == "Left":
+            logger.debug("MediaPipe label=%s FLIP_HANDEDNESS=%s", cam_label, FLIP_HANDEDNESS)
+            # MediaPipe Tasks API assumes mirrored input → "Right" = user's right.
+            # If FLIP_HANDEDNESS=True, invert (for non-standard camera setups).
+            is_right = (cam_label == "Right") if not FLIP_HANDEDNESS else (cam_label == "Left")
+            if is_right:
                 result_obj.right = landmarks
             else:
                 result_obj.left = landmarks

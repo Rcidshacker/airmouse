@@ -33,8 +33,8 @@ ONE_EURO_DCUTOFF = 1.0
 # All distances are Euclidean norms of normalized MediaPipe coordinates [0.0–1.0].
 
 # Thumb-pinch thresholds
-THUMB_INDEX_CLICK_DIST  = 0.045   # thumb tip ↔ index tip → left click
-THUMB_MIDDLE_CLICK_DIST = 0.050   # thumb tip ↔ middle tip → right click
+THUMB_INDEX_CLICK_DIST  = 0.060   # thumb tip ↔ index tip → left click
+THUMB_MIDDLE_CLICK_DIST = 0.065   # thumb tip ↔ middle tip → right click
 
 # Legacy (kept for reference during migration — unused after Task 5)
 CLICK_DISTANCE_THRESHOLD = 0.03
@@ -59,6 +59,20 @@ SCROLL_TICKS = 3
 # Two-hand gestures
 ZOOM_WRIST_DELTA    = 0.05        # normalized wrist-to-wrist distance change per zoom tick
 LOCK_SCREEN_HOLD_S  = 1.0         # both fists held this long → Win+L
+
+# ── Handedness ────────────────────────────────────────────────────────────────
+# MediaPipe Tasks API reports handedness assuming a mirrored (selfie-camera) input,
+# meaning "Right" = user's right hand and "Left" = user's left hand.
+# OpenCV VideoCapture on Windows returns the raw (unmirrored) frame, so MediaPipe
+# already compensates — set FLIP_HANDEDNESS = False.
+# If your cursor tracks the WRONG hand (cursor moves when you raise your LEFT hand),
+# toggle this to True.
+FLIP_HANDEDNESS = False
+
+# ── Debug ─────────────────────────────────────────────────────────────────────
+# Set True to open a debug window showing detected landmarks, hand labels (L/R),
+# gesture state, and pinch distances. Press Q in the window to quit.
+DEBUG_GESTURES = False
 
 # ── Windows OS ────────────────────────────────────────────────────────────────
 # Do not change these unless you understand the Windows scheduler implications.
