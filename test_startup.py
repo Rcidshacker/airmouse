@@ -35,10 +35,17 @@ def test_mediapipe() -> None:
 
 
 def test_actuator() -> None:
-    from core.display import build_virtual_desktop
+    from core.display import build_virtual_desktop, build_trackpad_zone
     from core.actuator import MouseActuator
+    from core.gestures import GestureOrchestrator
+    from core.tracker import HandsResult
     desktop = build_virtual_desktop()
+    trackpad = build_trackpad_zone()
     actuator = MouseActuator(desktop.total_width, desktop.total_height)
+    orch = GestureOrchestrator(actuator, desktop, trackpad)
+    # Feed empty frame (no hands) — verifies orchestrator initialises and processes without error
+    orch.process(HandsResult())
+    # Also verify raw move still works
     actuator.move(0, 0)
 
 
