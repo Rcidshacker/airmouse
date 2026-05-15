@@ -33,7 +33,7 @@ import psutil
 from config import PROCESS_PRIORITY, TIMER_RESOLUTION_MS
 from core.camera import AsyncCamera
 from core.tracker import HandTracker
-from core.gestures import GestureProcessor
+from core.gestures import GestureOrchestrator
 from core.actuator import MouseActuator
 from core.display import build_virtual_desktop, build_trackpad_zone
 
@@ -162,7 +162,7 @@ def run() -> None:
     none_count = 0
 
     with AsyncCamera() as camera, HandTracker() as tracker:
-        processor = GestureProcessor(actuator, desktop, trackpad)
+        processor = GestureOrchestrator(actuator, desktop, trackpad)
 
         logger.info("Running. Press Ctrl+C to exit.")
 
@@ -181,10 +181,8 @@ def run() -> None:
 
                 none_count = 0
 
-                landmarks = tracker.process(frame)
-
-                if landmarks is not None:
-                    processor.process(landmarks)
+                hands = tracker.process(frame)
+                processor.process(hands)
 
                 # FPS telemetry — log once per 5 seconds
                 frame_count += 1
