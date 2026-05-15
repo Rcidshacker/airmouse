@@ -1,2 +1,4 @@
 # core/gestures/__init__.py
-# GestureOrchestrator imported after orchestrator.py is created (Task 8)
+from core.gestures.orchestrator import GestureOrchestrator
+
+__all__ = ["GestureOrchestrator"]
