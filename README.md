@@ -53,6 +53,10 @@ cd airmouse
 python -m venv .venv
 .\.venv\Scripts\pip install -r requirements.txt
 
+# Download the MediaPipe hand model (~7.5 MB, git-ignored)
+mkdir models
+curl.exe -L -o models\hand_landmarker.task https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task
+
 # Verify all subsystems are healthy
 .\.venv\Scripts\python test_startup.py
 
@@ -66,7 +70,7 @@ On startup you'll see logs like:
 
 ```
 [INFO] core.tracker:    MediaPipe HandLandmarker initialized (max_hands=2)
-[INFO] core.gestures.orchestrator: GestureOrchestrator ready (dual-hand mode)
+[INFO] core.gestures.orchestrator: GestureOrchestrator ready (left hand: on, two-hand gestures: on)
 [INFO] airmouse.main:   Running. Press Ctrl+C to exit.
 [INFO] airmouse.main:   FPS: 31.4
 ```
@@ -150,6 +154,8 @@ All parameters live in `config.py` — never scattered across modules.
 | Accidental left clicks | `THUMB_INDEX_CLICK_DIST` | Decrease → try `0.04` |
 | Right click not triggering | `THUMB_MIDDLE_CLICK_DIST` | Increase |
 | Drag activates too quickly | `DRAG_HOLD_SECONDS` | Increase → try `0.5` |
+| Two quick taps don't double-click | `DOUBLE_CLICK_WINDOW_S` | Increase — keep it below the Windows double-click time (500 ms by default) |
+| One tap registers as two clicks | `PINCH_DEBOUNCE_S` | Increase → try `0.15` |
 
 </details>
 
@@ -161,6 +167,17 @@ All parameters live in `config.py` — never scattered across modules.
 | Scroll too sensitive | `WRIST_VELOCITY_THRESHOLD` | Increase → try `0.012` |
 | Scroll not registering | `WRIST_VELOCITY_THRESHOLD` | Decrease → try `0.005` |
 | Zoom fires too easily | `ZOOM_WRIST_DELTA` | Increase → try `0.07` |
+
+</details>
+
+<details>
+<summary><b>Hand layers</b></summary>
+
+| Want to… | Parameter | Value |
+|----------|-----------|-------|
+| Stop the left hand from firing shortcuts (Win+D, Alt+Tab, Ctrl…) | `LEFT_HAND_ENABLED` | `False` |
+| Disable zoom / window snap / lock screen | `TWO_HAND_GESTURES_ENABLED` | `False` |
+| Track only one hand (faster) | both of the above | `False` — `MP_MAX_HANDS` is then ignored |
 
 </details>
 
@@ -239,7 +256,10 @@ airmouse/
 ├── main.py              Entry point — Windows setup + inference loop
 ├── config.py            Every tunable constant, one file
 ├── requirements.txt     Dependencies
+├── requirements-dev.txt Test dependencies (pytest)
 ├── test_startup.py      Smoke tests — run before first use
+├── pytest.ini           Test collection settings
+├── tests/               Unit tests — no camera needed
 ├── models/              hand_landmarker.task (git-ignored, ~9 MB)
 └── core/
     ├── camera.py        Async frame capture via daemon thread
@@ -257,7 +277,29 @@ airmouse/
 
 ---
 
+## Running the Tests
+
+Gesture logic is covered by unit tests that use synthetic hand landmarks and a fake actuator, so they need no webcam and never move your mouse.
+
+```powershell
+.\.venv\Scripts\pip install -r requirements-dev.txt
+.\.venv\Scripts\python -m pytest
+```
+
+`test_startup.py` remains the hardware smoke test (camera, model, mouse) and is run directly as shown in Quick Start.
+
+---
+
 ## Troubleshooting
+
+<details>
+<summary><b>MediaPipe: "Unable to open file at models/hand_landmarker.task"</b></summary>
+
+- The model is not in the repository — download it as shown in [Quick Start](#quick-start)
+- Run the app from the repository root (the model path is relative)
+- If `curl` fails with `CRYPT_E_REVOCATION_OFFLINE`, add `--ssl-no-revoke` (the certificate revocation server is unreachable from your network) or download the URL in a browser into `models\`
+
+</details>
 
 <details>
 <summary><b>Camera fails to open</b></summary>

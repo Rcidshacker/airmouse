@@ -20,7 +20,15 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python.vision import HandLandmarker, HandLandmarkerOptions, RunningMode
 import numpy as np
 
-from config import MP_DETECTION_CONFIDENCE, MP_TRACKING_CONFIDENCE, MP_MODEL_PATH, FLIP_HANDEDNESS
+from config import (
+    MP_DETECTION_CONFIDENCE,
+    MP_TRACKING_CONFIDENCE,
+    MP_MODEL_PATH,
+    MP_MAX_HANDS,
+    FLIP_HANDEDNESS,
+    LEFT_HAND_ENABLED,
+    TWO_HAND_GESTURES_ENABLED,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +62,19 @@ LM_THUMB_TIP = 4
 LM_THUMB_MCP = 2
 
 
+def resolve_num_hands(max_hands: int, left_hand_enabled: bool, two_hand_enabled: bool) -> int:
+    """
+    Number of hands MediaPipe should track.
+
+    A second hand is only tracked when a feature uses it: with both the left-hand
+    and two-hand layers off, tracking one hand is cheaper and a stray left hand can
+    never take the slot of the right hand.
+    """
+    if not (left_hand_enabled or two_hand_enabled):
+        return 1
+    return max(1, max_hands)
+
+
 class HandTracker:
     """
     Wraps MediaPipe HandLandmarker (Tasks API) for single-hand landmark extraction.
@@ -62,16 +83,17 @@ class HandTracker:
 
     def __init__(self) -> None:
         base_options = python.BaseOptions(model_asset_path=MP_MODEL_PATH)
+        num_hands = resolve_num_hands(MP_MAX_HANDS, LEFT_HAND_ENABLED, TWO_HAND_GESTURES_ENABLED)
         options = HandLandmarkerOptions(
             base_options=base_options,
             running_mode=RunningMode.IMAGE,
-            num_hands=2,
+            num_hands=num_hands,
             min_hand_detection_confidence=MP_DETECTION_CONFIDENCE,
             min_hand_presence_confidence=MP_TRACKING_CONFIDENCE,
             min_tracking_confidence=MP_TRACKING_CONFIDENCE,
         )
         self._detector = HandLandmarker.create_from_options(options)
-        logger.info("MediaPipe HandLandmarker initialized (max_hands=2)")
+        logger.info("MediaPipe HandLandmarker initialized (max_hands=%d)", num_hands)
 
     def process(self, frame: np.ndarray) -> HandsResult:
         """

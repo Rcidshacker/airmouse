@@ -17,7 +17,8 @@ State machine:
     └─ peace sign released       → IDLE
 
   LEFT_PINCH_PENDING_DRAG
-    ├─ pinch released < DRAG_HOLD_SECONDS  → left_click() or double_click() → IDLE
+    ├─ pinch released < DRAG_HOLD_SECONDS  → left click → IDLE
+    │     (a second tap within DOUBLE_CLICK_WINDOW_S completes a double click)
     └─ pinch held ≥ DRAG_HOLD_SECONDS      → drag_start() → DRAGGING
 
   DRAGGING
@@ -35,6 +36,7 @@ from config import (
     DRAG_HOLD_SECONDS,
     GESTURE_COOLDOWN_SECONDS,
     DOUBLE_CLICK_WINDOW_S,
+    PINCH_DEBOUNCE_S,
     WRIST_VELOCITY_THRESHOLD,
     SCROLL_TICK_SCALE,
     SCROLL_COOLDOWN_S,
@@ -78,6 +80,9 @@ class RightHandProcessor:
         self._state = _State.IDLE
         self._pinch_start_time: float | None = None
         self._last_click_time: float = 0.0
+        self._last_click_pos: tuple[int, int] | None = None
+        self._cursor_pos: tuple[int, int] | None = None
+        self._right_pinch_active: bool = False
         self._last_gesture_time: float = 0.0
         self._last_scroll_time: float = 0.0
         self._prev_wrist_y: float | None = None
@@ -102,6 +107,7 @@ class RightHandProcessor:
                 self._actuator.drag_end()
             self._state = _State.IDLE
             self._pinch_start_time = None
+            self._right_pinch_active = False
             self._prev_wrist_y = None
             self._last_frame_time = None
             return
@@ -161,12 +167,15 @@ class RightHandProcessor:
             logger.debug("Entered scroll mode (peace sign)")
             return
 
-        # ── Right click ───────────────────────────────────────────────────────
-        if (
-            d_thumb_mid < THUMB_MIDDLE_CLICK_DIST
+        # ── Right click (edge-triggered: once per thumb+middle pinch) ────────
+        if d_thumb_mid >= THUMB_MIDDLE_CLICK_DIST:
+            self._right_pinch_active = False
+        elif (
+            not self._right_pinch_active
             and self._state == _State.IDLE
             and (now - self._last_gesture_time) >= GESTURE_COOLDOWN_SECONDS
         ):
+            self._right_pinch_active = True
             self._actuator.right_click()
             self._last_gesture_time = now
             logger.debug("Right click (d=%.4f)", d_thumb_mid)
@@ -180,17 +189,7 @@ class RightHandProcessor:
 
         elif self._state == _State.LEFT_PINCH_PENDING_DRAG:
             if not thumb_idx_pinch:
-                # Pinch released — fire click (double if within window)
-                if (now - self._last_gesture_time) >= GESTURE_COOLDOWN_SECONDS:
-                    if (now - self._last_click_time) <= DOUBLE_CLICK_WINDOW_S and self._last_click_time > 0:
-                        self._actuator.double_click()
-                        logger.debug("Double click")
-                        self._last_click_time = 0.0  # reset so triple doesn't become double+double
-                    else:
-                        self._actuator.left_click()
-                        logger.debug("Left click (d=%.4f)", d_thumb_idx)
-                        self._last_click_time = now
-                    self._last_gesture_time = now
+                self._on_pinch_release(now, d_thumb_idx)
                 self._state = _State.IDLE
                 self._pinch_start_time = None
 
@@ -211,3 +210,46 @@ class RightHandProcessor:
         filtered_y = self._filter_y(landmarks[8].y, now)
         screen_x, screen_y = map_to_desktop(filtered_x, filtered_y, self._trackpad, self._desktop)
         self._actuator.move(screen_x, screen_y)
+        self._cursor_pos = (screen_x, screen_y)
+
+    def _on_pinch_release(self, now: float, d_thumb_idx: float) -> None:
+        """
+        Fire the click for a released thumb+index pinch.
+
+        A release within DOUBLE_CLICK_WINDOW_S of the previous click completes a
+        double click. The first click has already been sent, so only one more
+        click is needed — at the first click's position, because Windows pairs
+        two clicks into a double click only if they land within a few pixels of
+        each other (the hand usually drifts a little between taps). Calling
+        double_click() here would send two extra clicks, i.e. a triple click.
+
+        A release closer than PINCH_DEBOUNCE_S to the previous click is the pinch
+        distance flickering around the threshold, not a second tap, and is ignored.
+        """
+        since_click = (now - self._last_click_time) if self._last_click_time > 0 else None
+
+        if since_click is not None and since_click < PINCH_DEBOUNCE_S:
+            logger.debug("Pinch jitter ignored (%.3fs after click)", since_click)
+            return
+
+        if (
+            since_click is not None
+            and since_click <= DOUBLE_CLICK_WINDOW_S
+            and self._last_click_pos is not None
+        ):
+            self._actuator.move(*self._last_click_pos)
+            self._actuator.left_click()
+            logger.debug("Double click (second click after %.3fs)", since_click)
+            self._last_click_time = 0.0  # a third tap starts a new sequence
+            self._last_click_pos = None
+            self._last_gesture_time = now
+            return
+
+        if (now - self._last_gesture_time) < GESTURE_COOLDOWN_SECONDS:
+            return
+
+        self._actuator.left_click()
+        logger.debug("Left click (d=%.4f)", d_thumb_idx)
+        self._last_click_time = now
+        self._last_click_pos = self._cursor_pos
+        self._last_gesture_time = now

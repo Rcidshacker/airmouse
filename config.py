@@ -11,9 +11,15 @@ CAMERA_BUFFER_SIZE = 1            # DirectShow buffer: 1 = always freshest frame
 
 # ── MediaPipe ──────────────────────────────────────────────────────────────────
 MP_MODEL_PATH = "models/hand_landmarker.task"  # float16 Tasks API bundle
-MP_MAX_HANDS = 1
+MP_MAX_HANDS = 2                  # hands tracked; forced to 1 when both hand layers below are off
 MP_DETECTION_CONFIDENCE = 0.7
 MP_TRACKING_CONFIDENCE = 0.5
+
+# ── Hand layers ────────────────────────────────────────────────────────────────
+# The right hand always drives the mouse. Turning both layers off tracks a single
+# hand, which is cheaper and stops a resting left hand from triggering shortcuts.
+LEFT_HAND_ENABLED = True          # left-hand system shortcuts (Win+D, Alt+Tab, Ctrl, ...)
+TWO_HAND_GESTURES_ENABLED = True  # zoom / window snap / lock screen (needs both hands)
 
 # ── Virtual Trackpad ───────────────────────────────────────────────────────────
 # Shrink the active tracking zone inward from webcam edges by this many pixels.
@@ -44,6 +50,8 @@ DRAG_HOLD_SECONDS = 0.4           # thumb+index pinch held → drag activates
 GESTURE_COOLDOWN_SECONDS = 0.4    # min gap between discrete gesture events
 
 DOUBLE_CLICK_WINDOW_S = 0.4       # second pinch within this window = double click
+                                  # keep below the Windows double-click time (500 ms default)
+PINCH_DEBOUNCE_S = 0.1            # a release this soon after a click is pinch jitter, not a tap
 
 # Fist detection — all finger tips must be below their PIP joints
 FIST_CURL_THRESHOLD = 0.0         # unused numerically; fist = all 5 curled (boolean)
